@@ -1,0 +1,40 @@
+{
+  "name": "@sbj42/maze-generator-prim",
+  "version": "0.1.0",
+  "description": "A maze generator based on Prim's algorithm",
+  "main": "src",
+  "scripts": {
+    "lint": "eslint .",
+    "test": "mocha && npm run lint"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sbj42/maze-generator-prim.git"
+  },
+  "keywords": [
+    "maze-generator",
+    "maze",
+    "dungeon",
+    "labyrinth",
+    "procedural",
+    "prims-algorithm"
+  ],
+  "author": "James Clark",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/sbj42/maze-generator-prim/issues"
+  },
+  "homepage": "https://github.com/sbj42/maze-generator-prim#readme",
+  "dependencies": {
+    "@sbj42/maze-generator-support": "^0.1.0"
+  },
+  "devDependencies": {
+    "eslint": "^3.7.1",
+    "mocha": "^3.1.0",
+    "random-js": "^1.0.8",
+    "@sbj42/maze-generator": "^1.0.0"
+  },
+  "peerDependencies": {
+    "@sbj42/maze-generator": "^1.0.0"
+  }
+}
