@@ -19,7 +19,7 @@
     "procedural",
     "prims-algorithm"
   ],
-  "author": "James Clark",
+  "author": "James Clark <jameswclark@gmail.com> (http://arbitraryclark.blogspot.com/)",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/sbj42/maze-generator-prim/issues"
