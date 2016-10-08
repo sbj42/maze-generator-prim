@@ -2,7 +2,7 @@
   "name": "@sbj42/maze-generator-prim",
   "version": "0.1.0",
   "description": "A maze generator based on Prim's algorithm",
-  "main": "src",
+  "main": "src/prim",
   "scripts": {
     "lint": "eslint .",
     "test": "mocha && npm run lint"
