@@ -32,9 +32,9 @@
     "eslint": "^3.7.1",
     "mocha": "^3.1.0",
     "random-js": "^1.0.8",
-    "@sbj42/maze-generator": "^1.0.0"
+    "@sbj42/maze-generator": "^2.0.0"
   },
   "peerDependencies": {
-    "@sbj42/maze-generator": "^1.0.0"
+    "@sbj42/maze-generator": "^2.0.0"
   }
 }
