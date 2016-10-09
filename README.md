@@ -3,7 +3,7 @@ A maze generator based on Prim's algorithm
 
 This is a plugin for the `sbj42/maze-generator` package.
 
-Prims' tends to generate lots of dead-ends.
+Prim's algorithm tends to generate lots of dead-ends.
 
 This algorithm works by digging multiple random passages at a time,
 randomly deciding which passage to work on at each step.
