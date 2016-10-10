@@ -24,6 +24,8 @@ function randomInt(options, max) {
  * @param {Array} array
  */
 function randomChoice(options, array) {
+    if (array.length == 1)
+        return array[0];
     return array[randomInt(options, array.length)];
 }
 
