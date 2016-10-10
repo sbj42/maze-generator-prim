@@ -1,6 +1,6 @@
-var support = require('@sbj42/maze-generator-support');
-var GridMask = support.GridMask;
-var dirs = support.directions;
+var core = require('@sbj42/maze-generator-core');
+var GridMask = core.GridMask;
+var dirs = core.directions;
 
 /**
  * @typedef {Object} MGOptions

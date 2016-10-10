@@ -5,7 +5,9 @@
   "main": "src/prim",
   "scripts": {
     "lint": "eslint .",
-    "test": "mocha && npm run lint"
+    "test": "mocha test/test-algorithm && npm run lint",
+    "benchmark": "node test/benchmark-algorithm",
+    "demo": "node test/cli-demo"
   },
   "repository": {
     "type": "git",
@@ -26,15 +28,14 @@
   },
   "homepage": "https://github.com/sbj42/maze-generator-prim#readme",
   "dependencies": {
-    "@sbj42/maze-generator-support": "^0.1.0"
-  },
-  "devDependencies": {
-    "eslint": "^3.7.1",
-    "mocha": "^3.1.0",
-    "random-js": "^1.0.8",
-    "@sbj42/maze-generator": "^2.0.0"
+    "@sbj42/maze-generator-core": "^0.1.0"
   },
   "peerDependencies": {
     "@sbj42/maze-generator": "^2.0.0"
+  },
+  "devDependencies": {
+    "@sbj42/maze-generator": "^2.0.0",
+    "@sbj42/maze-generator-dev": "^0.1.0",
+    "eslint": "^3.7.1"
   }
 }
