@@ -7,7 +7,8 @@
     "lint": "eslint .",
     "test": "mocha test/test-algorithm && npm run lint",
     "benchmark": "node test/benchmark-algorithm",
-    "demo": "node test/cli-demo"
+    "demo": "node test/cli-demo",
+    "webdemo": "node test/web-demo-build"
   },
   "repository": {
     "type": "git",
