@@ -41,7 +41,8 @@ function getIncludedNeighborDirections(inMask, pos) {
     var ret = [];
     for (var i = 0; i < dirs.ALL.length; i ++) {
         var dir = dirs.ALL[i];
-        if (inMask.get(pos[0] + dirs.dx(dir), pos[1] + dirs.dy(dir)))
+        var neighbor = dirs.move(pos[0], pos[1], dir);
+        if (inMask.get(neighbor[0], neighbor[1]))
             ret.push(dir);
     }
     return ret;
@@ -57,7 +58,7 @@ function getIncludedNeighborDirections(inMask, pos) {
 function addNeighborsToFrontier(outMask, frontier, pos) {
     for (var i = 0; i < dirs.ALL.length; i ++) {
         var dir = dirs.ALL[i];
-        var neighbor = [pos[0] + dirs.dx(dir), pos[1] + dirs.dy(dir)];
+        var neighbor = dirs.move(pos[0], pos[1], dir);
         if (outMask.get(neighbor[0], neighbor[1])) {
             frontier.push(neighbor);
             outMask.set(neighbor[0], neighbor[1], false);
@@ -101,7 +102,11 @@ function prim(maze, options) {
         // Choose a random cell from the frontier
         var index = randomInt(options, frontier.length);
         // Get the cell and remove it from the frontier
-        cur = frontier.splice(index, 1)[0];
+        // (swap out the cell for the last cell in the frontier, this is
+        // faster than splice(,1), because we don't care about the order)
+        cur = frontier[index];
+        frontier[index] = frontier[frontier.length-1];
+        frontier.length --;
         // Choose a random direction, toward a neighbor that is already in the maze
         var dir = randomChoice(options, getIncludedNeighborDirections(inMask, cur));
 
