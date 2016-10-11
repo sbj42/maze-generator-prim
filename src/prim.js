@@ -39,12 +39,14 @@ function randomChoice(options, array) {
  */
 function getIncludedNeighborDirections(inMask, pos) {
     var ret = [];
-    for (var i = 0; i < dirs.ALL.length; i ++) {
-        var dir = dirs.ALL[i];
-        var neighbor = dirs.move(pos[0], pos[1], dir);
-        if (inMask.get(neighbor[0], neighbor[1]))
-            ret.push(dir);
-    }
+    if (inMask.get(pos[0], pos[1] - 1))
+        ret.push(dirs.NORTH);
+    if (inMask.get(pos[0] + 1, pos[1]))
+        ret.push(dirs.EAST);
+    if (inMask.get(pos[0], pos[1] + 1))
+        ret.push(dirs.SOUTH);
+    if (inMask.get(pos[0] - 1, pos[1]))
+        ret.push(dirs.WEST);
     return ret;
 }
 
@@ -56,13 +58,21 @@ function getIncludedNeighborDirections(inMask, pos) {
  * @param {integer[]} pos
  */
 function addNeighborsToFrontier(outMask, frontier, pos) {
-    for (var i = 0; i < dirs.ALL.length; i ++) {
-        var dir = dirs.ALL[i];
-        var neighbor = dirs.move(pos[0], pos[1], dir);
-        if (outMask.get(neighbor[0], neighbor[1])) {
-            frontier.push(neighbor);
-            outMask.set(neighbor[0], neighbor[1], false);
-        }
+    if (outMask.get(pos[0], pos[1] - 1)) {
+        frontier.push([pos[0], pos[1] - 1]);
+        outMask.set(pos[0], pos[1] - 1, false);
+    }
+    if (outMask.get(pos[0] + 1, pos[1])) {
+        frontier.push([pos[0] + 1, pos[1]]);
+        outMask.set(pos[0] + 1, pos[1], false);
+    }
+    if (outMask.get(pos[0], pos[1] + 1)) {
+        frontier.push([pos[0], pos[1] + 1]);
+        outMask.set(pos[0], pos[1] + 1, false);
+    }
+    if (outMask.get(pos[0] - 1, pos[1])) {
+        frontier.push([pos[0] - 1, pos[1]]);
+        outMask.set(pos[0] - 1, pos[1], false);
     }
 }
 
