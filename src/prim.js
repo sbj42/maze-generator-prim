@@ -91,13 +91,21 @@ function prim(maze, options) {
     // outMask tracks cells that are neither in the maze nor
     // in the "frontier".  At first, every cell in the grid
     // is in this mask.
-    var outMask = new GridMask(width, height, {interior: true});
+    var outMask;
+    if (options.mask) {
+        outMask = options.mask.clone();
+    } else {
+        outMask = new GridMask(width, height, {interior: true});
+    }
 
     // The frontier array tracks cells that are in the frontier
     var frontier = [];
 
+    var cur;
     // Choose a random cell in the grid to start from
-    var cur = [randomInt(options, width), randomInt(options, height)];
+    do {
+        cur = [randomInt(options, width), randomInt(options, height)];
+    } while (options.mask && !options.mask.get(cur[0], cur[1]));
 
     // Take the initial cell out of outMask and put it in inMask
     // (it is now part of the maze)
@@ -128,5 +136,11 @@ function prim(maze, options) {
         addNeighborsToFrontier(outMask, frontier, cur);
     }
 }
+
+prim.id = 'prim';
+prim.name = 'Prim\'s algorithm';
+prim.features = {
+    mask: true
+};
 
 module.exports = prim;

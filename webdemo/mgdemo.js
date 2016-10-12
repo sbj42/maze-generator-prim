@@ -53,11 +53,12 @@
 
 	/* eslint-env browser */
 	var algorithmFunc = __webpack_require__(2);
-	var Maze = __webpack_require__(7).Maze;
-	var dirs = __webpack_require__(7).directions;
+	var Maze = __webpack_require__(3).Maze;
+	var GridMask = __webpack_require__(3).GridMask;
+	var dirs = __webpack_require__(3).directions;
 
 	function makeRandom(seed) {
-	    var randomjs = __webpack_require__(11);
+	    var randomjs = __webpack_require__(7);
 	    var engine = randomjs.engines.mt19937().seed(seed);
 	    var real = randomjs.real(0, 1);
 	    return function() {
@@ -65,11 +66,28 @@
 	    };
 	}
 
+	function makeMask(width, height) {
+	    var mask = new GridMask(width, height, {
+	        interior: true
+	    });
+	    for (var x = 0 ; x < width; x += 10) {
+	        for (var y = 0; y < height; y += 10) {
+	            for (var xx = 0; xx < 5; xx ++) {
+	                for (var yy = 0; yy < 5; yy ++) {
+	                    mask.set(x + 5 + xx, y + 5 + yy, false);
+	                }
+	            }
+	        }
+	    }
+	    return mask;
+	}
+
 	var go = document.getElementById('go');
 	go.addEventListener('click', function() {
 	    var width = +document.getElementById('width').value;
 	    var height = +document.getElementById('height').value;
 	    var seed = +document.getElementById('seed').value;
+	    var mask = +document.getElementById('mask').checked;
 	    var zoom = 4;
 	    if (!width || !height || width < 1 || height < 1)
 	        return;
@@ -77,6 +95,8 @@
 	    var options = {
 	        random: seed ? makeRandom(seed) : Math.random
 	    };
+	    if (mask)
+	        options.mask = makeMask(width, height);
 
 	    var maze = new Maze(width, height);
 	    algorithmFunc(maze, options);
@@ -94,6 +114,12 @@
 	        var cx, x;
 	        for (x = 0; x < maze.width(); x ++) {
 	            cx = x * (1 + zoom);
+	            if (mask) {
+	                if (!options.mask.get(x, y)) {
+	                    context.fillRect(cx, cy, 1 + zoom, 1 + zoom);
+	                    continue;
+	                }
+	            }
 	            context.fillRect(cx, cy, 1, 1);
 	            if (!maze.getPassage(x, y, dirs.NORTH))
 	                context.fillRect(cx + 1, cy, zoom, 1);
@@ -153,11 +179,14 @@
 	 */
 	function getIncludedNeighborDirections(inMask, pos) {
 	    var ret = [];
-	    for (var i = 0; i < dirs.ALL.length; i ++) {
-	        var dir = dirs.ALL[i];
-	        if (inMask.get(pos[0] + dirs.dx(dir), pos[1] + dirs.dy(dir)))
-	            ret.push(dir);
-	    }
+	    if (inMask.get(pos[0], pos[1] - 1))
+	        ret.push(dirs.NORTH);
+	    if (inMask.get(pos[0] + 1, pos[1]))
+	        ret.push(dirs.EAST);
+	    if (inMask.get(pos[0], pos[1] + 1))
+	        ret.push(dirs.SOUTH);
+	    if (inMask.get(pos[0] - 1, pos[1]))
+	        ret.push(dirs.WEST);
 	    return ret;
 	}
 
@@ -169,13 +198,21 @@
 	 * @param {integer[]} pos
 	 */
 	function addNeighborsToFrontier(outMask, frontier, pos) {
-	    for (var i = 0; i < dirs.ALL.length; i ++) {
-	        var dir = dirs.ALL[i];
-	        var neighbor = [pos[0] + dirs.dx(dir), pos[1] + dirs.dy(dir)];
-	        if (outMask.get(neighbor[0], neighbor[1])) {
-	            frontier.push(neighbor);
-	            outMask.set(neighbor[0], neighbor[1], false);
-	        }
+	    if (outMask.get(pos[0], pos[1] - 1)) {
+	        frontier.push([pos[0], pos[1] - 1]);
+	        outMask.set(pos[0], pos[1] - 1, false);
+	    }
+	    if (outMask.get(pos[0] + 1, pos[1])) {
+	        frontier.push([pos[0] + 1, pos[1]]);
+	        outMask.set(pos[0] + 1, pos[1], false);
+	    }
+	    if (outMask.get(pos[0], pos[1] + 1)) {
+	        frontier.push([pos[0], pos[1] + 1]);
+	        outMask.set(pos[0], pos[1] + 1, false);
+	    }
+	    if (outMask.get(pos[0] - 1, pos[1])) {
+	        frontier.push([pos[0] - 1, pos[1]]);
+	        outMask.set(pos[0] - 1, pos[1], false);
 	    }
 	}
 
@@ -194,13 +231,21 @@
 	    // outMask tracks cells that are neither in the maze nor
 	    // in the "frontier".  At first, every cell in the grid
 	    // is in this mask.
-	    var outMask = new GridMask(width, height, {interior: true});
+	    var outMask;
+	    if (options.mask) {
+	        outMask = options.mask.clone();
+	    } else {
+	        outMask = new GridMask(width, height, {interior: true});
+	    }
 
 	    // The frontier array tracks cells that are in the frontier
 	    var frontier = [];
 
+	    var cur;
 	    // Choose a random cell in the grid to start from
-	    var cur = [randomInt(options, width), randomInt(options, height)];
+	    do {
+	        cur = [randomInt(options, width), randomInt(options, height)];
+	    } while (options.mask && !options.mask.get(cur[0], cur[1]));
 
 	    // Take the initial cell out of outMask and put it in inMask
 	    // (it is now part of the maze)
@@ -215,7 +260,11 @@
 	        // Choose a random cell from the frontier
 	        var index = randomInt(options, frontier.length);
 	        // Get the cell and remove it from the frontier
-	        cur = frontier.splice(index, 1)[0];
+	        // (swap out the cell for the last cell in the frontier, this is
+	        // faster than splice(,1), because we don't care about the order)
+	        cur = frontier[index];
+	        frontier[index] = frontier[frontier.length-1];
+	        frontier.length --;
 	        // Choose a random direction, toward a neighbor that is already in the maze
 	        var dir = randomChoice(options, getIncludedNeighborDirections(inMask, cur));
 
@@ -227,6 +276,12 @@
 	        addNeighborsToFrontier(outMask, frontier, cur);
 	    }
 	}
+
+	prim.id = 'prim';
+	prim.name = 'Prim\'s algorithm';
+	prim.features = {
+	    mask: true
+	};
 
 	module.exports = prim;
 
@@ -267,311 +322,18 @@
 	        interior = !!options.interior;
 	    this._width = width;
 	    this._height = height;
-	    this._grid = [];
 	    this._exterior = false;
 	    if (options.exterior != null)
 	        this._exterior = !!options.exterior;
-	    for (var i = 0; i < width * height; i ++) {
-	        this._grid.push(interior);
-	    }
-	}
-
-	/**
-	 * The width of the GridMask
-	 *
-	 * @return {integer}
-	 */
-	GridMask.prototype.width = function() {
-	    return this._width;
-	};
-
-	/**
-	 * The height of the GridMask
-	 *
-	 * @return {integer}
-	 */
-	GridMask.prototype.height = function() {
-	    return this._height;
-	};
-
-	/**
-	 * Returns the boolean value at the specified cell
-	 *
-	 * @param {integer} x
-	 * @param {integer} y
-	 */
-	GridMask.prototype.get = function(x, y) {
-	    if (x < 0 || x >= this.width() || y < 0 || y >= this.height()) {
-	        return this._exterior;
-	    }
-	    return this._grid[y * this.width() + x];
-	};
-
-	/**
-	 * Sets the boolean value at the specified cell.  Throws an
-	 * error for coordinates that lie outside the grid.
-	 *
-	 * @param {integer} x
-	 * @param {integer} y
-	 * @param {boolean} value
-	 */
-	GridMask.prototype.set = function(x, y, value) {
-	    if (x < 0 || x >= this.width() || y < 0 || y >= this.height()) {
-	        throw new Error('cell out of bounds: ' + x + ',' + y);
-	    }
-	    this._grid[y * this.width() + x] = value;
-	    return this;
-	};
-
-	module.exports = GridMask;
-
-
-/***/ },
-/* 5 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var dirs = __webpack_require__(6);
-
-	/**
-	 * A Cell is a wrapper object that makes it easier to
-	 * ask for passage information by name.
-	 *
-	 * @constructor
-	 * @private
-	 * @param {integer} width
-	 * @param {integer} height
-	 */
-	function Cell(data) {
-	    this._data = data;
-	}
-
-	function cellPassage(data, dir) {
-	    return !!(data & dirs.bitmask(dir));
-	}
-
-	Cell.prototype.north = function() {
-	    return cellPassage(this._data, dirs.NORTH);
-	};
-
-	Cell.prototype.west = function() {
-	    return cellPassage(this._data, dirs.WEST);
-	};
-
-	Cell.prototype.south = function() {
-	    return cellPassage(this._data, dirs.SOUTH);
-	};
-
-	Cell.prototype.east = function() {
-	    return cellPassage(this._data, dirs.EAST);
-	};
-
-	/**
-	 * A Maze is a rectangular grid of cells, where each cell
-	 * may have passages in each of the cardinal directions.
-	 * The maze is initialized with each cell having no passages.
-	 *
-	 * @constructor
-	 * @param {integer} width
-	 * @param {integer} height
-	 */
-	function Maze(width, height) {
-	    if (width < 0 || height < 0)
-	        throw new Error('invalid size: ' + width + 'x' + height);
-	    this._width = width;
-	    this._height = height;
-	    this._grid = [];
-	    for (var i = 0; i < width * height; i ++)
-	        this._grid.push(0);
-	}
-
-	/**
-	 * The width of the Maze
-	 *
-	 * @return {integer}
-	 */
-	Maze.prototype.width = function() {
-	    return this._width;
-	};
-
-	/**
-	 * The height of the Maze
-	 *
-	 * @return {integer}
-	 */
-	Maze.prototype.height = function() {
-	    return this._height;
-	};
-
-	function cellData(grid, width, x, y) {
-	    return grid[y * width + x];
-	}
-
-	function setCellPassage(grid, width, x, y, dir, value) {
-	    if (value)
-	        grid[y * width + x] |= dirs.bitmask(dir);
-	    else
-	        grid[y * width + x] &= ~dirs.bitmask(dir);
-	}
-
-	/**
-	 * Returns the cell at the given position.
-	 *
-	 * @param {integer} x
-	 * @param {integer} y
-	 * @return {Cell}
-	 */
-	Maze.prototype.cell = function(x, y) {
-	    if (x < 0 || y < 0 || x >= this.width() || y >= this.height())
-	        return new Cell(0);
-	    return new Cell(cellData(this._grid, this._width, x, y));
-	};
-
-	/**
-	 * Returns whether there is a passage at the given position and
-	 * direction
-	 *
-	 * @param {integer} x
-	 * @param {integer} y
-	 * @param {Direction} dir
-	 */
-	Maze.prototype.getPassage = function(x, y, dir) {
-	    return cellPassage(cellData(this._grid, this._width, x, y), dir);
-	};
-
-	/**
-	 * Creates or removes a passage at the given position and
-	 * direction.  Note that this also creates the corresponding
-	 * passage in the neighboring cell.
-	 *
-	 * @param {integer} x
-	 * @param {integer} y
-	 * @param {Direction} dir
-	 * @param {boolean} value
-	 */
-	Maze.prototype.setPassage = function(x, y, dir, value) {
-	    if (value == null)
-	        value = true;
-	    if (x < 0 || y < 0 || x >= this.width() || y >= this.height())
-	        throw new Error('source cell out of bounds: ' + x + ',' + y);
-	    var x2 = x + dirs.dx(dir);
-	    var y2 = y + dirs.dy(dir);
-	    if (x2 < 0 || y2 < 0 || x2 >= this.width() || y2 >= this.height())
-	        throw new Error('target cell out of bounds: ' + x2 + ',' + y2);
-	    setCellPassage(this._grid, this._width, x, y, dir, value);
-	    var dir2 = dirs.opposite(dir);
-	    setCellPassage(this._grid, this._width, x2, y2, dir2, value);
-	};
-
-	module.exports = Maze;
-
-
-/***/ },
-/* 6 */
-/***/ function(module, exports) {
-
-	var dirs = {};
-
-	/**
-	 * @typedef {integer} Direction
-	 */
-
-	dirs.NORTH = 0;
-	dirs.EAST =  1;
-	dirs.SOUTH = 2;
-	dirs.WEST =  3;
-
-	dirs.ALL = [dirs.NORTH, dirs.EAST, dirs.SOUTH, dirs.WEST];
-
-	/**
-	 * Returns the opposite direction
-	 *
-	 * @param {Direction} dir
-	 * @return {Direction}
-	 */
-	dirs.opposite = function(dir) {
-	    return [dirs.SOUTH, dirs.WEST, dirs.NORTH, dirs.EAST][dir];
-	};
-
-	/**
-	 * Returns the x component of the direction vector
-	 *
-	 * @param {Direction} dir
-	 * @return {integer}
-	 */
-	dirs.dx = function(dir) {
-	    return [0, 1, 0, -1][dir];
-	};
-
-	/**
-	 * Returns the y component of the direction vector
-	 *
-	 * @param {Direction} dir
-	 * @return {integer}
-	 */
-	dirs.dy = function(dir) {
-	    return [-1, 0, 1, 0][dir];
-	};
-
-
-	/**
-	 * Returns a bitmask for the direction, useful for
-	 * storing a bunch of direction boolean values in
-	 * a single integer.
-	 *
-	 * @param {Direction} dir
-	 * @return {integer}
-	 */
-	dirs.bitmask = function(dir) {
-	    return 1 << dir;
-	};
-
-	module.exports = dirs;
-
-
-/***/ },
-/* 7 */
-/***/ function(module, exports, __webpack_require__) {
-
-	exports.GridMask = __webpack_require__(8);
-	exports.Maze = __webpack_require__(9);
-	exports.directions = __webpack_require__(10);
-
-
-/***/ },
-/* 8 */
-/***/ function(module, exports) {
-
-	/**
-	 * @typedef {Object} GridMaskOptions
-	 * @property {boolean} [interior] The value to intialize interior cells to
-	 * @property {boolean} [exterior] The value to return for exterior cells
-	 */
-
-	/**
-	 * A GridMask is a rectangular grid of boolean values.
-	 *
-	 * @constructor
-	 * @param {integer} width
-	 * @param {integer} height
-	 * @param {GridMaskOptions} options
-	 */
-	function GridMask(width, height, options) {
-	    if (width < 0 || height < 0)
-	        throw new Error('invalid size: ' + width + 'x' + height);
-	    options = options || {};
-	    var interior = false;
-	    if (options.interior != null)
-	        interior = !!options.interior;
-	    this._width = width;
-	    this._height = height;
-	    this._grid = [];
-	    this._exterior = false;
-	    if (options.exterior != null)
-	        this._exterior = !!options.exterior;
-	    var initBlock = interior ? ~0 : 0;
 	    this._blockWidth = (width+31) >> 5;
+	    if (options._grid) {
+	        this._grid = options._grid;
+	        return;
+	    }
+	    this._grid = new Array(this._blockWidth * height);
+	    var initBlock = interior ? ~0 : 0;
 	    for (var i = 0; i < this._blockWidth * height; i ++) {
-	        this._grid.push(initBlock);
+	        this._grid[i] = initBlock;
 	    }
 	}
 
@@ -591,6 +353,18 @@
 	 */
 	GridMask.prototype.height = function() {
 	    return this._height;
+	};
+
+	/**
+	 * Returns a copy of the GridMask.
+	 *
+	 * @return {GridMask}
+	 */
+	GridMask.prototype.clone = function() {
+	    return new GridMask(this.width(), this.height(), {
+	        exterior: this._exterior,
+	        _grid: this._grid.slice()
+	    });
 	};
 
 	/**
@@ -631,14 +405,40 @@
 	    return this;
 	};
 
+	/**
+	 * ...
+	 *
+	 * @param {integer} x
+	 * @param {integer} y
+	 * @param {boolean} [value=true]
+	 */
+	GridMask.prototype.testAndSet = function(x, y, value) {
+	    if (value == null)
+	        value = true;
+	    if (x < 0 || x >= this._width || y < 0 || y >= this._height) {
+	        if (this._exterior == value)
+	            return false;
+	        throw new Error('cell out of bounds: ' + x + ',' + y);
+	    }
+	    var index = y * this._blockWidth + (x >> 5);
+	    var mask = 1 << (x & 31);
+	    if (((this._grid[index] & mask) != 0) == value)
+	        return false;
+	    if (value)
+	        this._grid[index] |= mask;
+	    else
+	        this._grid[index] &= ~mask;
+	    return true;
+	};
+
 	module.exports = GridMask;
 
 
 /***/ },
-/* 9 */
+/* 5 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var dirs = __webpack_require__(10);
+	var dirs = __webpack_require__(6);
 
 	/**
 	 * A Cell is a wrapper object that makes it easier to
@@ -686,10 +486,10 @@
 	        throw new Error('invalid size: ' + width + 'x' + height);
 	    this._width = width;
 	    this._height = height;
-	    this._grid = [];
 	    this._blockWidth = ((width+1)+15) >> 4;
+	    this._grid = new Array(this._blockWidth * (height + 1));
 	    for (var i = 0; i < this._blockWidth * (height + 1); i ++)
-	        this._grid.push(0);
+	        this._grid[i] = 0;
 	}
 
 	/**
@@ -822,7 +622,7 @@
 
 
 /***/ },
-/* 10 */
+/* 6 */
 /***/ function(module, exports) {
 
 	var dirs = {};
@@ -845,7 +645,13 @@
 	 * @return {Direction}
 	 */
 	dirs.opposite = function(dir) {
-	    return [dirs.SOUTH, dirs.WEST, dirs.NORTH, dirs.EAST][dir];
+	    switch (dir) {
+	        case 0/*dirs.NORTH*/: return 2;
+	        case 1/*dirs.EAST*/: return 3;
+	        case 2/*dirs.SOUTH*/: return 0;
+	        case 3/*dirs.WEST*/: return 1;
+	        default: throw new Error('bad direction: ' + dir);
+	    }
 	};
 
 	/**
@@ -855,7 +661,13 @@
 	 * @return {integer}
 	 */
 	dirs.dx = function(dir) {
-	    return [0, 1, 0, -1][dir];
+	    switch (dir) {
+	        case 0/*dirs.NORTH*/: return 0;
+	        case 1/*dirs.EAST*/: return 1;
+	        case 2/*dirs.SOUTH*/: return 0;
+	        case 3/*dirs.WEST*/: return -1;
+	        default: throw new Error('bad direction: ' + dir);
+	    }
 	};
 
 	/**
@@ -865,9 +677,32 @@
 	 * @return {integer}
 	 */
 	dirs.dy = function(dir) {
-	    return [-1, 0, 1, 0][dir];
+	    switch (dir) {
+	        case 0/*dirs.NORTH*/: return -1;
+	        case 1/*dirs.EAST*/: return 0;
+	        case 2/*dirs.SOUTH*/: return 1;
+	        case 3/*dirs.WEST*/: return 0;
+	        default: throw new Error('bad direction: ' + dir);
+	    }
 	};
 
+	/**
+	 * Moves the coordinate in the given direction
+	 *
+	 * @param {integer} x
+	 * @param {integer} y
+	 * @param {Direction} dir
+	 * @return {integer[]}
+	 */
+	dirs.move = function(x, y, dir) {
+	    switch (dir) {
+	        case 0/*dirs.NORTH*/: return [x, y-1];
+	        case 1/*dirs.EAST*/: return [x+1, y];
+	        case 2/*dirs.SOUTH*/: return [x, y+1];
+	        case 3/*dirs.WEST*/: return [x-1, y];
+	        default: throw new Error('bad direction: ' + dir);
+	    }
+	};
 
 	/**
 	 * Returns a bitmask for the direction, useful for
@@ -885,7 +720,7 @@
 
 
 /***/ },
-/* 11 */
+/* 7 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/*jshint eqnull:true*/
