@@ -1,12 +1,19 @@
-# maze-generator-backtrack
-A maze generator based on Prim's algorithm
+# maze-generator-prim
+A maze generator using a randomized Prim's algorithm
 
 This is a plugin for the `sbj42/maze-generator` package.
 
-Prim's algorithm tends to generate lots of dead-ends.
+Prim's algorithm is a method of generating a "minimum spanning tree"
+of an arbitrary graph.  This adapts naturally to generating mazes,
+since every perfect maze is also a spanning tree.  The walls in the
+maze are given equal weight, so we replace the part of Prim's
+algorithm that finds the minimum-weight edge with code that simply
+chooses a random edge.
 
-This algorithm works by digging multiple random passages at a time,
-randomly deciding which passage to work on at each step.
+Basically, this algorithm works by digging multiple random passages
+at a time, randomly deciding which passage to work on at each step.
+Compared to the 'recursive-backtracking' algorithm, this generator
+tends to have more, shorter dead ends.
 
 ```
 ___________________________________________________
