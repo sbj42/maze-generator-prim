@@ -1,6 +1,6 @@
 {
   "name": "@sbj42/maze-generator-prim",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "A maze generator using a randomized Prim's algorithm",
   "main": "src/prim",
   "scripts": {
