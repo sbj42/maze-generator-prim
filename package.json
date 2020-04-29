@@ -1,6 +1,6 @@
 {
   "name": "@sbj42/maze-generator-prim",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "A maze generator using a randomized Prim's algorithm",
   "main": "src/prim",
   "scripts": {
@@ -29,15 +29,15 @@
     "url": "https://github.com/sbj42/maze-generator-prim/issues"
   },
   "homepage": "https://github.com/sbj42/maze-generator-prim#readme",
-  "dependencies": {
-    "@sbj42/maze-generator-core": "^0.1.4"
-  },
   "peerDependencies": {
     "@sbj42/maze-generator": "^2.0.3"
   },
   "devDependencies": {
-    "@sbj42/maze-generator": "^2.0.3",
-    "@sbj42/maze-generator-dev": "^0.1.5",
-    "eslint": "^3.7.1"
+    "@sbj42/maze-generator": "^2.0.6",
+    "@sbj42/maze-generator-dev": "^0.1.7",
+    "eslint": "^6.8.0"
+  },
+  "dependencies": {
+    "@sbj42/maze-generator-core": "^0.1.4"
   }
 }
